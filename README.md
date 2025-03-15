@@ -1,7 +1,7 @@
 <div align="center">
   
 ![Title](https://github.com/user-attachments/assets/f3524319-1fff-40d1-8fe9-9d07833f8887)
-
+[Title] Now with LuckPerms support!
 SlimeRanks is a powerful and flexible Minecraft plugin that allows server owners to create fully customizable ranks. These ranks can be displayed in the tab list, chat, and above players' heads to enhance the gaming experience.
 
 [![Modrinth](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/available/modrinth_vector.svg)](https://modrinth.com/plugin/slimeranks)
