@@ -1,8 +1,11 @@
 package de.lxca.slimeRanks.objects;
 
 import de.lxca.slimeRanks.Main;
+import io.github.miniplaceholders.api.MiniPlaceholders;
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -13,13 +16,15 @@ public class Rank {
     private final String identifier;
     private boolean tabActive;
     private String tabFormat;
-    private int priority;
+    private int tabPriority;
     private boolean chatActive;
     private String chatFormat;
+    private boolean coloredMessages;
     private boolean nameTagActive;
     private String nameTagFormat;
     private boolean hideNameTagOnSneak;
     private String permission;
+    private int rankPriority;
 
     public Rank(String identifier) {
         YamlConfiguration ranksYml = Main.getRanksYml().getYmlConfig();
@@ -27,13 +32,15 @@ public class Rank {
         this.identifier = identifier;
         this.tabActive = ranksYml.getBoolean("Ranks." + identifier + ".Tab.Active", false);
         this.tabFormat = ranksYml.getString("Ranks." + identifier + ".Tab.Format", null);
-        this.priority = ranksYml.getInt("Ranks." + identifier + ".Tab.Priority", 0);
+        this.tabPriority = ranksYml.getInt("Ranks." + identifier + ".Tab.Priority", 0);
         this.chatActive = ranksYml.getBoolean("Ranks." + identifier + ".Chat.Active", false);
         this.chatFormat = ranksYml.getString("Ranks." + identifier + ".Chat.Format", null);
+        this.coloredMessages = ranksYml.getBoolean("Ranks." + identifier + ".Chat.ColoredMessages", false);
         this.nameTagActive = ranksYml.getBoolean("Ranks." + identifier + ".NameTag.Active", false);
         this.nameTagFormat = ranksYml.getString("Ranks." + identifier + ".NameTag.Format", null);
         this.hideNameTagOnSneak = ranksYml.getBoolean("Ranks." + identifier + ".NameTag.HideOnSneak", true);
         this.permission = ranksYml.getString("Ranks." + identifier + ".Permission", null);
+        this.rankPriority = ranksYml.getInt("Ranks." + identifier + ".RankPriority", 0);
     }
 
     public String getIdentifier() {
@@ -55,7 +62,7 @@ public class Rank {
             return null;
         }
 
-        return MiniMessage.miniMessage().deserialize(tabFormat.replace("{player}", player.getName()));
+        return parseComponent(tabFormat, player, null);
     }
 
     public String getRawTabFormat() {
@@ -68,14 +75,14 @@ public class Rank {
         this.tabFormat = tabFormat;
     }
 
-    public int getPriority() {
-        return priority;
+    public int getTabPriority() {
+        return tabPriority;
     }
 
-    public void setPriority(int priority) {
-        Main.getRanksYml().getYmlConfig().set("Ranks." + identifier + ".Tab.Priority", priority);
+    public void setTabPriority(int tabPriority) {
+        Main.getRanksYml().getYmlConfig().set("Ranks." + identifier + ".Tab.Priority", tabPriority);
         Main.getRanksYml().saveYmlConfig();
-        this.priority = priority;
+        this.tabPriority = tabPriority;
     }
 
     public boolean chatIsActive() {
@@ -93,7 +100,7 @@ public class Rank {
             return null;
         }
 
-        return MiniMessage.miniMessage().deserialize(chatFormat.replace("{player}", player.getName()).replace("{message}", message));
+        return parseComponent(chatFormat, player, message);
     }
 
     public String getRawChatFormat() {
@@ -104,6 +111,16 @@ public class Rank {
         Main.getRanksYml().getYmlConfig().set("Ranks." + identifier + ".Chat.Format", chatFormat);
         Main.getRanksYml().saveYmlConfig();
         this.chatFormat = chatFormat;
+    }
+
+    public boolean getColoredMessages() {
+        return coloredMessages;
+    }
+
+    public void setColoredMessages(boolean coloredMessages) {
+        Main.getRanksYml().getYmlConfig().set("Ranks." + identifier + ".Chat.ColoredMessages", coloredMessages);
+        Main.getRanksYml().saveYmlConfig();
+        this.coloredMessages = coloredMessages;
     }
 
     public boolean nameTagIsActive() {
@@ -121,7 +138,7 @@ public class Rank {
             return null;
         }
 
-        return MiniMessage.miniMessage().deserialize(nameTagFormat.replace("{player}", player.getName()));
+        return parseComponent(nameTagFormat, player, null);
     }
 
     public String getRawNameTagFormat() {
@@ -154,9 +171,39 @@ public class Rank {
         this.permission = permission;
     }
 
+    public int getRankPriority() {
+        return rankPriority;
+    }
+
+    public void setRankPriority(int rankPriority) {
+        Main.getRanksYml().getYmlConfig().set("Ranks." + identifier + ".RankPriority", rankPriority);
+        Main.getRanksYml().saveYmlConfig();
+        this.rankPriority = rankPriority;
+    }
+
     public void delete() {
         Main.getRanksYml().getYmlConfig().set("Ranks." + identifier, null);
         Main.getRanksYml().saveYmlConfig();
         RankManager.getInstance().reloadRanks();
+    }
+
+    private @NotNull Component parseComponent(@NotNull String format, @NotNull Player player, @Nullable String message) {
+        Component deserializedFormat = null;
+
+        format = format.replace("{player}", player.getName());
+        if (message != null) {
+            format = format.replace("{message}", message);
+        }
+
+        if (Main.isPluginEnabled("PlaceholderAPI")) {
+            format = PlaceholderAPI.setPlaceholders(player, format);
+        }
+
+        if (Main.isPluginEnabled("MiniPlaceholders")) {
+            TagResolver tagResolver = MiniPlaceholders.getAudienceGlobalPlaceholders(player);
+            deserializedFormat = MiniMessage.miniMessage().deserialize(format, tagResolver);
+        }
+
+        return deserializedFormat != null ? deserializedFormat : MiniMessage.miniMessage().deserialize(format);
     }
 }
